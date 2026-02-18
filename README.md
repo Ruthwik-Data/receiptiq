@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ReceiptIQ — Expense Intelligence 💼
 
-## Getting Started
+ReceiptIQ is a premium finance dashboard and AI-powered expense extraction tool. Built for speed and precision, it transforms messy receipt images and text into structured, actionable financial data.
 
-First, run the development server:
+**[Live Demo](https://receiptiq-topaz.vercel.app)**
 
+## 🚀 Key Features
+
+- **AI-Powered Extraction**: Uses GPT-4o Vision to accurately parse merchant, dates, taxes, and line items.
+- **Instant Financial Insights**: Real-time computation of tax rates, net spend, and category classification.
+- **Premium Dashboard**: A sleek, indigo-themed interface with dynamic spending visualizations using Recharts.
+- **Budget Intelligence**: Intelligent category tagging with persistence for long-term spending tracking.
+- **Export Ready**: Instant JSON and CSV downloads for integration with accounting software.
+- **Hybrid Input**: Support for both camera capture/file uploads and quick text-based pasting.
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 15](https://nextjs.org/) (Turbopack)
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
+- **AI**: [OpenAI GPT-4o](https://openai.com/)
+- **Database/Auth**: [Supabase](https://supabase.com/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Charts**: [Recharts](https://recharts.org/)
+
+## 🏁 Getting Started
+
+### 1. Prerequisites
+- Node.js 20+
+- OpenAI API Key
+- Supabase Project URL & Anon Key
+
+### 2. Installation
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd receiptiq
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Environment Variables
+Create a `.env.local` file:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+OPENAI_API_KEY=your_openai_api_key
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) to see the result.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📝 Demo Mode
+Includes a built-in sample receipt feature for instant demonstration without requiring an immediate OpenAI key or image upload.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*Built with ❤️ for financial clarity.*

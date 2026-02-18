@@ -17,8 +17,8 @@ export default function CameraCapture({ onCapture }: { onCapture: (file: File) =
 
   const startCamera = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
       })
       setStream(mediaStream)
       if (videoRef.current) {
@@ -34,13 +34,13 @@ export default function CameraCapture({ onCapture }: { onCapture: (file: File) =
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current
       const canvas = canvasRef.current
-      
+
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
-      
+
       const ctx = canvas.getContext('2d')
       ctx?.drawImage(video, 0, 0)
-      
+
       canvas.toBlob((blob) => {
         if (blob) {
           const file = new File([blob], 'receipt.jpg', { type: 'image/jpeg' })
@@ -64,14 +64,14 @@ export default function CameraCapture({ onCapture }: { onCapture: (file: File) =
         <>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 font-semibold"
+            className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 text-white font-semibold px-6 py-4 rounded-xl shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
           >
             📁 Upload from Gallery
           </button>
-          
+
           <button
             onClick={startCamera}
-            className="w-full bg-indigo-600 text-white py-4 rounded-lg hover:bg-indigo-700 font-semibold"
+            className="w-full bg-white text-gray-700 font-medium px-6 py-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
           >
             📸 Use Camera
           </button>
@@ -90,18 +90,18 @@ export default function CameraCapture({ onCapture }: { onCapture: (file: File) =
             ref={videoRef}
             autoPlay
             playsInline
-            className="w-full rounded-lg"
+            className="w-full rounded-xl border-2 border-gray-200"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <button
               onClick={capturePhoto}
-              className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700"
+              className="flex-1 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
               ✓ Capture
             </button>
             <button
               onClick={stopCamera}
-              className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700"
+              className="flex-1 bg-white text-gray-700 font-medium py-3 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
             >
               ✕ Cancel
             </button>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import CameraCapture from '@/components/CameraCapture'
 import ReceiptDisplay from '@/components/ReceiptDisplay'
 import { Card } from '@/components/ui/card'
@@ -9,6 +9,42 @@ interface SavedReceipt {
   id: string
   data: string
   timestamp: number
+}
+
+const BUDGET_CATEGORIES = ['Food', 'Travel', 'Groceries', 'Shopping', 'Bills', 'Other'] as const
+type BudgetCategory = typeof BUDGET_CATEGORIES[number]
+
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  'Food': ['restaurant', 'cafe', 'coffee', 'pizza', 'burger', 'taco', 'sushi', 'bar', 'grill', 'kitchen', 'diner', 'bistro', 'food', 'eat'],
+  'Groceries': ['market', 'grocery', 'supermarket', 'walmart', 'target', 'costco', 'whole foods', 'trader'],
+  'Travel': ['gas', 'fuel', 'shell', 'chevron', 'exxon', 'bp', 'uber', 'lyft', 'parking', 'hotel', 'airline'],
+  'Shopping': ['store', 'shop', 'mall', 'retail', 'amazon', 'clothing', 'apparel'],
+  'Bills': ['pharmacy', 'cvs', 'walgreens', 'hospital', 'clinic', 'medical', 'dental', 'doctor', 'electric', 'water', 'internet'],
+}
+
+function inferCategory(merchant: string): string {
+  const lower = merchant.toLowerCase()
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some(k => lower.includes(k))) return category
+  }
+  return 'Other'
+}
+
+function getBudgetTag(merchant: string, date: string, total: number): BudgetCategory | null {
+  try {
+    const key = `budget_${merchant}_${date}_${total}`
+    const stored = localStorage.getItem(key)
+    return stored as BudgetCategory | null
+  } catch {
+    return null
+  }
+}
+
+function setBudgetTag(merchant: string, date: string, total: number, tag: BudgetCategory) {
+  try {
+    const key = `budget_${merchant}_${date}_${total}`
+    localStorage.setItem(key, tag)
+  } catch { }
 }
 
 export default function Home() {
@@ -45,18 +81,18 @@ export default function Home() {
   const handleImageCapture = async (image: File) => {
     setProcessing(true)
     setResult(null)
-    
+
     try {
       const formData = new FormData()
       formData.append('image', image)
-      
+
       const response = await fetch('/api/scan-receipt', {
         method: 'POST',
         body: formData
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         setResult(data.data)
         saveReceipt(data.data)
@@ -66,7 +102,7 @@ export default function Home() {
     } catch (error) {
       alert('Failed to scan receipt')
     }
-    
+
     setProcessing(false)
   }
 
@@ -75,40 +111,40 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Professional Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="container max-w-6xl mx-auto px-4 py-4">
+    <main className="min-h-screen">
+      {/* Clean Header */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-10">
+        <div className="container max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="text-3xl">📸</div>
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-xl flex items-center justify-center text-white text-xl shadow-lg shadow-indigo-500/30">
+                💼
+              </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">ReceiptIQ</h1>
-                <p className="text-xs text-gray-500">AI-Powered Expense Intelligence</p>
+                <h1 className="text-xl font-bold text-gray-900">ReceiptIQ — Expense Intelligence</h1>
+                <p className="text-xs text-gray-500">Upload a receipt. Get clean expense data + instant insights.</p>
               </div>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setView('scanner')}
-                className={`px-6 py-2 rounded-lg font-semibold transition-all ${
-                  view === 'scanner'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                className={`px-5 py-2 rounded-xl font-medium transition-all ${view === 'scanner'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                  : 'text-gray-600 hover:bg-gray-100'
+                  }`}
               >
-                📸 Scanner
+                Scanner
               </button>
               <button
                 onClick={() => setView('dashboard')}
-                className={`px-6 py-2 rounded-lg font-semibold transition-all relative ${
-                  view === 'dashboard'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
+                className={`px-5 py-2 rounded-xl font-medium transition-all relative ${view === 'dashboard'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                  : 'text-gray-600 hover:bg-gray-100'
+                  }`}
               >
-                📊 Dashboard
+                Dashboard
                 {savedReceipts.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-semibold">
                     {savedReceipts.length}
                   </span>
                 )}
@@ -116,52 +152,403 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="container max-w-6xl mx-auto px-4 py-8">
+      <div className="container max-w-7xl mx-auto px-6 py-10">
         {view === 'scanner' ? (
-          <div className="max-w-md mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Scan Your Receipt
-              </h2>
-              <p className="text-gray-600">
-                Extract data in 3 seconds with AI
-              </p>
-            </div>
-
-            {!result ? (
-              <Card className="p-6 shadow-lg">
-                {processing ? (
-                  <div className="text-center py-12">
-                    <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4" />
-                    <p className="text-gray-600 font-medium">Analyzing receipt...</p>
-                    <p className="text-sm text-gray-500 mt-2">Using GPT-4o Vision</p>
-                  </div>
-                ) : (
-                  <CameraCapture onCapture={handleImageCapture} />
-                )}
-              </Card>
-            ) : (
-              <>
-                <Card className="p-6 mb-4 shadow-lg">
-                  <ReceiptDisplay data={result} />
-                </Card>
-                
-                <button
-                  onClick={handleScanAnother}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-lg hover:from-indigo-700 hover:to-purple-700 font-semibold shadow-lg transition-all"
-                >
-                  📸 Scan Another Receipt
-                </button>
-              </>
-            )}
-          </div>
+          <ScannerView
+            processing={processing}
+            result={result}
+            onCapture={handleImageCapture}
+            onScanAnother={handleScanAnother}
+          />
         ) : (
           <DashboardView receipts={savedReceipts} onClearAll={clearAllReceipts} />
         )}
       </div>
     </main>
+  )
+}
+
+function ScannerView({
+  processing,
+  result,
+  onCapture,
+  onScanAnother
+}: {
+  processing: boolean
+  result: string | null
+  onCapture: (file: File) => void
+  onScanAnother: () => void
+}) {
+  const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload')
+  const [pasteText, setPasteText] = useState('')
+  const [showJson, setShowJson] = useState(false)
+  const [budgetTag, setBudgetTagState] = useState<BudgetCategory | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) onCapture(file)
+  }
+
+  const handlePasteExtract = () => {
+    if (!pasteText.trim()) return
+    const blob = new Blob([pasteText], { type: 'text/plain' })
+    const file = new File([blob], 'pasted-receipt.txt', { type: 'text/plain' })
+    onCapture(file)
+  }
+
+  const handleSampleReceipt = () => {
+    const sampleText = `WHOLE FOODS MARKET
+123 Main St, San Francisco, CA
+Date: ${new Date().toLocaleDateString()}
+
+Organic Bananas     $3.99
+Almond Milk        $4.49
+Whole Grain Bread  $5.99
+Avocados (3)       $6.99
+
+Subtotal:         $21.46
+Tax:               $1.93
+Total:            $23.39
+
+Thank you for shopping!`
+    const blob = new Blob([sampleText], { type: 'text/plain' })
+    const file = new File([blob], 'sample-receipt.txt', { type: 'text/plain' })
+    onCapture(file)
+  }
+
+  let parsedResult: any = null
+  if (result) {
+    try {
+      const jsonMatch = result.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        parsedResult = JSON.parse(jsonMatch[0])
+        // Load budget tag
+        if (parsedResult.merchant && parsedResult.date && parsedResult.total) {
+          const tag = getBudgetTag(parsedResult.merchant, parsedResult.date, parsedResult.total)
+          if (tag && tag !== budgetTag) setBudgetTagState(tag)
+        }
+      }
+    } catch (e) { }
+  }
+
+  // Compute insights
+  const insights = parsedResult ? {
+    taxRate: parsedResult.tax && parsedResult.total ?
+      ((parsedResult.tax / (parsedResult.total - parsedResult.tax)) * 100).toFixed(2) : null,
+    netSpend: parsedResult.total && parsedResult.tax ?
+      (parsedResult.total - parsedResult.tax).toFixed(2) : parsedResult.subtotal?.toFixed(2) || null,
+    category: parsedResult.merchant ? inferCategory(parsedResult.merchant) : 'Other',
+    dataQuality: (() => {
+      let score = 0
+      if (parsedResult.merchant) score++
+      if (parsedResult.date) score++
+      if (parsedResult.total) score++
+      if (parsedResult.tax !== undefined) score++
+      if (score >= 4) return 'High'
+      if (score >= 2) return 'Medium'
+      return 'Low'
+    })()
+  } : null
+
+  const handleBudgetTagChange = (tag: BudgetCategory) => {
+    setBudgetTagState(tag)
+    if (parsedResult?.merchant && parsedResult?.date && parsedResult?.total) {
+      setBudgetTag(parsedResult.merchant, parsedResult.date, parsedResult.total, tag)
+    }
+  }
+
+  const downloadJSON = () => {
+    if (!parsedResult) return
+    const dataStr = JSON.stringify(parsedResult, null, 2)
+    const blob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `receipt-${parsedResult.merchant || 'export'}-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const downloadCSV = () => {
+    if (!parsedResult) return
+    const headers = ['merchant', 'date', 'total', 'tax', 'subtotal', 'category', 'tag']
+    const values = [
+      parsedResult.merchant || '',
+      parsedResult.date || '',
+      parsedResult.total || '',
+      parsedResult.tax || '',
+      parsedResult.subtotal || '',
+      insights?.category || '',
+      budgetTag || ''
+    ]
+    let csv = headers.join(',') + '\n' + values.join(',')
+
+    // Add line items if present
+    if (parsedResult.items && parsedResult.items.length > 0) {
+      csv += '\n\nLine Items\nname,price\n'
+      csv += parsedResult.items.map((item: any) => `${item.name},${item.price}`).join('\n')
+    }
+
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `receipt-${parsedResult.merchant || 'export'}-${Date.now()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleReset = () => {
+    setPasteText('')
+    setBudgetTagState(null)
+    onScanAnother()
+  }
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+      {/* Left Column: Input */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Extract Receipt Data</h2>
+          <p className="text-gray-600">Upload or paste receipt information</p>
+        </div>
+
+        <div className="card-premium">
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-xl">
+            <button
+              onClick={() => setActiveTab('upload')}
+              className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${activeTab === 'upload'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
+            >
+              📁 Upload
+            </button>
+            <button
+              onClick={() => setActiveTab('paste')}
+              className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all ${activeTab === 'paste'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+                }`}
+            >
+              📝 Paste
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          {processing ? (
+            <div className="text-center py-16 fade-in">
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 border-4 border-indigo-200 rounded-full"></div>
+                <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+              </div>
+              <p className="text-gray-700 font-medium mb-1">Analyzing receipt...</p>
+              <p className="text-sm text-gray-500">Using GPT-4o Vision</p>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'upload' && (
+                <div className="space-y-4">
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/50 transition-all"
+                  >
+                    <div className="text-5xl mb-4">📤</div>
+                    <p className="text-gray-700 font-medium mb-1">Click to upload receipt</p>
+                    <p className="text-sm text-gray-500">PNG, JPG, or PDF</p>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+              )}
+
+              {activeTab === 'paste' && (
+                <div className="space-y-4">
+                  <textarea
+                    value={pasteText}
+                    onChange={(e) => setPasteText(e.target.value)}
+                    placeholder="Paste receipt text here..."
+                    className="w-full h-48 px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  />
+                  <button
+                    onClick={handlePasteExtract}
+                    disabled={!pasteText.trim()}
+                    className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Extract Data
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {!processing && !result && (
+          <button
+            onClick={handleSampleReceipt}
+            className="btn-secondary w-full"
+          >
+            ✨ Try sample receipt
+          </button>
+        )}
+      </div>
+
+      {/* Right Column: Results */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Extracted Data</h2>
+          <p className="text-gray-600">Structured output from your receipt</p>
+        </div>
+
+        {!result ? (
+          <div className="card-premium text-center py-20 fade-in">
+            <div className="text-6xl mb-4 opacity-30">📋</div>
+            <p className="text-gray-500">Upload a receipt to preview structured output</p>
+          </div>
+        ) : parsedResult ? (
+          <div className="space-y-4 slide-up">
+            {/* Summary Tiles */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="card-premium bg-gradient-to-br from-indigo-50 to-indigo-100/50 border-indigo-200">
+                <p className="text-xs font-medium text-indigo-600 mb-1">TOTAL</p>
+                <p className="text-3xl font-bold text-indigo-900">${parsedResult.total?.toFixed(2) || '0.00'}</p>
+              </div>
+              <div className="card-premium bg-gradient-to-br from-emerald-50 to-emerald-100/50 border-emerald-200">
+                <p className="text-xs font-medium text-emerald-600 mb-1">TAX</p>
+                <p className="text-3xl font-bold text-emerald-900">${parsedResult.tax?.toFixed(2) || '0.00'}</p>
+              </div>
+              <div className="card-premium bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200">
+                <p className="text-xs font-medium text-blue-600 mb-1">MERCHANT</p>
+                <p className="text-sm font-bold text-blue-900 truncate">{parsedResult.merchant || 'N/A'}</p>
+              </div>
+              <div className="card-premium bg-gradient-to-br from-purple-50 to-purple-100/50 border-purple-200">
+                <p className="text-xs font-medium text-purple-600 mb-1">DATE</p>
+                <p className="text-sm font-bold text-purple-900">{parsedResult.date || 'N/A'}</p>
+              </div>
+            </div>
+
+            {/* Data Quality & Budget Tag */}
+            <div className="card-premium">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-medium text-gray-700">Data Quality</span>
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${insights?.dataQuality === 'High' ? 'bg-emerald-100 text-emerald-700' :
+                  insights?.dataQuality === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                    'bg-rose-100 text-rose-700'
+                  }`}>
+                  {insights?.dataQuality || 'Low'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Tag this expense</span>
+                <select
+                  value={budgetTag || ''}
+                  onChange={(e) => handleBudgetTagChange(e.target.value as BudgetCategory)}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                >
+                  <option value="">Select tag...</option>
+                  {BUDGET_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Insights Panel */}
+            <div className="card-premium bg-gradient-to-br from-slate-50 to-slate-100/50 border-slate-200">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="text-lg">💡</span> Insights
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                {insights?.taxRate && (
+                  <div className="bg-white rounded-lg p-3 border border-slate-200">
+                    <p className="text-xs text-gray-500 mb-1">Tax Rate</p>
+                    <p className="text-lg font-bold text-gray-900">{insights.taxRate}%</p>
+                  </div>
+                )}
+                {insights?.netSpend && (
+                  <div className="bg-white rounded-lg p-3 border border-slate-200">
+                    <p className="text-xs text-gray-500 mb-1">Net Spend</p>
+                    <p className="text-lg font-bold text-gray-900">${insights.netSpend}</p>
+                  </div>
+                )}
+                <div className="bg-white rounded-lg p-3 border border-slate-200">
+                  <p className="text-xs text-gray-500 mb-1">Category</p>
+                  <p className="text-sm font-bold text-gray-900">{insights?.category}</p>
+                </div>
+                {budgetTag && (
+                  <div className="bg-white rounded-lg p-3 border border-slate-200">
+                    <p className="text-xs text-gray-500 mb-1">Budget Tag</p>
+                    <p className="text-sm font-bold text-gray-900">{budgetTag}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Export Tools */}
+            <div className="flex gap-3">
+              <button
+                onClick={downloadJSON}
+                className="flex-1 btn-secondary text-sm"
+              >
+                📥 Download JSON
+              </button>
+              <button
+                onClick={downloadCSV}
+                className="flex-1 btn-secondary text-sm"
+              >
+                📊 Download CSV
+              </button>
+            </div>
+
+            {/* Raw JSON */}
+            <div className="card-premium">
+              <button
+                onClick={() => setShowJson(!showJson)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <span className="text-sm font-medium text-gray-700">Raw JSON</span>
+                <span className="text-gray-400">{showJson ? '▼' : '▶'}</span>
+              </button>
+              {showJson && (
+                <div className="mt-4 relative">
+                  <pre className="bg-gray-50 rounded-lg p-4 text-xs overflow-x-auto border border-gray-200">
+                    {JSON.stringify(parsedResult, null, 2)}
+                  </pre>
+                  <button
+                    onClick={() => navigator.clipboard.writeText(JSON.stringify(parsedResult, null, 2))}
+                    className="absolute top-2 right-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-50 transition-all"
+                  >
+                    📋 Copy
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Scan Another */}
+            <button
+              onClick={handleReset}
+              className="btn-primary w-full"
+            >
+              📸 Scan Another Receipt
+            </button>
+          </div>
+        ) : (
+          <div className="card-premium bg-rose-50 border-rose-200 fade-in">
+            <p className="text-rose-800 font-medium mb-2">⚠ Error parsing receipt</p>
+            <p className="text-sm text-rose-600">Could not extract structured data from the response.</p>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -201,7 +588,7 @@ function DashboardView({ receipts, onClearAll }: { receipts: SavedReceipt[], onC
         const parsed = JSON.parse(jsonMatch[0])
         return { ...parsed, timestamp: r.timestamp }
       }
-    } catch (e) {}
+    } catch (e) { }
     return null
   }).filter(Boolean)
 
@@ -222,14 +609,14 @@ function DashboardView({ receipts, onClearAll }: { receipts: SavedReceipt[], onC
   parsedReceipts.forEach(r => {
     const merchant = r.merchant?.toLowerCase() || ''
     let category = '📦 Other'
-    
+
     for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
       if (keywords.some(k => merchant.includes(k))) {
         category = cat
         break
       }
     }
-    
+
     categoryTotals[category] = (categoryTotals[category] || 0) + r.total
   })
 
@@ -257,7 +644,7 @@ function DashboardView({ receipts, onClearAll }: { receipts: SavedReceipt[], onC
         r.total || 0
       ]
     })
-    
+
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -349,7 +736,7 @@ function DashboardView({ receipts, onClearAll }: { receipts: SavedReceipt[], onC
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                       <div
-                        className={`${colors[category] || 'bg-gray-500'} h-3 rounded-full transition-all duration-500 group-hover:opacity-90`}
+                        className={`${(colors as any)[category] || 'bg-gray-500'} h-3 rounded-full transition-all duration-500 group-hover:opacity-90`}
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -367,14 +754,14 @@ function DashboardView({ receipts, onClearAll }: { receipts: SavedReceipt[], onC
           <div className="space-y-4">
             <div className="bg-white p-4 rounded-lg shadow-sm">
               <div className="text-sm font-semibold text-indigo-600 mb-1">Top Spending</div>
-              <p className="text-gray-700">Your highest category is <strong>{topCategory[0]}</strong> at ${topCategory[1].toFixed(2)} ({((topCategory[1]/totalSpent)*100).toFixed(0)}% of total)</p>
+              <p className="text-gray-700">Your highest category is <strong>{topCategory[0]}</strong> at ${topCategory[1].toFixed(2)} ({((topCategory[1] / totalSpent) * 100).toFixed(0)}% of total)</p>
             </div>
-            
+
             <div className="bg-white p-4 rounded-lg shadow-sm">
               <div className="text-sm font-semibold text-green-600 mb-1">Tax Tracking</div>
               <p className="text-gray-700">You've paid <strong>${totalTax.toFixed(2)}</strong> in sales tax. Keep these receipts for deductions!</p>
             </div>
-            
+
             <div className="bg-white p-4 rounded-lg shadow-sm">
               <div className="text-sm font-semibold text-blue-600 mb-1">Spending Pattern</div>
               <p className="text-gray-700">Your average transaction is <strong>${avgTransaction.toFixed(2)}</strong> across {receipts.length} receipts</p>
@@ -403,7 +790,7 @@ function DashboardView({ receipts, onClearAll }: { receipts: SavedReceipt[], onC
                 break
               }
             }
-            
+
             return (
               <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all">
                 <div className="flex items-center gap-4">
