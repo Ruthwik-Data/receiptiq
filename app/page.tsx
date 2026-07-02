@@ -277,7 +277,21 @@ Thank you for shopping!`
     netSpend: parsedResult.total && parsedResult.tax ?
       (parsedResult.total - parsedResult.tax).toFixed(2) : parsedResult.subtotal?.toFixed(2) || null,
     category: parsedResult.merchant ? inferCategory(parsedResult.merchant) : 'Other',
+    // Prefer the model's self-reported confidence; fall back to field-presence.
+    confidencePct: typeof parsedResult.overall_confidence === 'number'
+      ? Math.round(parsedResult.overall_confidence * 100)
+      : null,
+    lowConfidenceFields: parsedResult.confidence && typeof parsedResult.confidence === 'object'
+      ? Object.entries(parsedResult.confidence)
+          .filter(([, v]) => typeof v === 'number' && (v as number) < 0.7)
+          .map(([k]) => k)
+      : [],
     dataQuality: (() => {
+      if (typeof parsedResult.overall_confidence === 'number') {
+        if (parsedResult.overall_confidence >= 0.85) return 'High'
+        if (parsedResult.overall_confidence >= 0.6) return 'Medium'
+        return 'Low'
+      }
       let score = 0
       if (parsedResult.merchant) score++
       if (parsedResult.date) score++
@@ -475,14 +489,24 @@ Thank you for shopping!`
             {/* Data Quality & Budget Tag */}
             <div className="card-premium">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-gray-700">Data Quality</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Extraction Confidence
+                  {insights?.confidencePct != null && (
+                    <span className="ml-2 text-xs font-normal text-gray-400">AI-reported</span>
+                  )}
+                </span>
                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${insights?.dataQuality === 'High' ? 'bg-emerald-100 text-emerald-700' :
                   insights?.dataQuality === 'Medium' ? 'bg-amber-100 text-amber-700' :
                     'bg-rose-100 text-rose-700'
                   }`}>
-                  {insights?.dataQuality || 'Low'}
+                  {insights?.dataQuality || 'Low'}{insights?.confidencePct != null ? ` · ${insights.confidencePct}%` : ''}
                 </span>
               </div>
+              {insights?.lowConfidenceFields && insights.lowConfidenceFields.length > 0 && (
+                <div className="mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  ⚠ Low confidence — double-check: {insights.lowConfidenceFields.join(', ')}
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">Tag this expense</span>
                 <select
