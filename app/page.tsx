@@ -47,6 +47,38 @@ function setBudgetTag(merchant: string, date: string, total: number, tag: Budget
   } catch { }
 }
 
+// Demo receipts seeded on first visit so the dashboard shows a realistic,
+// multi-category spending picture instead of an empty/one-item state.
+function buildDemoReceipts(): SavedReceipt[] {
+  const day = 86400000
+  const now = Date.now()
+  const seed = [
+    { merchant: 'Whole Foods Market', subtotal: 21.46, tax: 1.93, tip: 0, total: 23.39, daysAgo: 2, items: [{ name: 'Organic Bananas', price: 3.49 }, { name: 'Almond Milk', price: 4.99 }] },
+    { merchant: 'Blue Bottle Coffee', subtotal: 8.03, tax: 0.72, tip: 1.50, total: 10.25, daysAgo: 3, items: [{ name: 'Latte', price: 5.25 }, { name: 'Croissant', price: 2.78 }] },
+    { merchant: 'Shell Gas Station', subtotal: 52.10, tax: 0, tip: 0, total: 52.10, daysAgo: 5, items: [{ name: 'Unleaded Fuel', price: 52.10 }] },
+    { merchant: 'Chipotle Mexican Grill', subtotal: 11.79, tax: 1.06, tip: 0, total: 12.85, daysAgo: 6, items: [{ name: 'Burrito Bowl', price: 11.79 }] },
+    { merchant: 'CVS Pharmacy', subtotal: 13.03, tax: 1.17, tip: 0, total: 14.20, daysAgo: 9, items: [{ name: 'Vitamins', price: 13.03 }] },
+    { merchant: 'Amazon.com', subtotal: 32.10, tax: 2.89, tip: 0, total: 34.99, daysAgo: 12, items: [{ name: 'USB-C Cable', price: 12.99 }, { name: 'Notebook', price: 19.11 }] },
+  ]
+  return seed.map((s, i) => {
+    const timestamp = now - s.daysAgo * day
+    const date = new Date(timestamp).toLocaleDateString('en-US')
+    return {
+      id: `demo-${i}-${timestamp}`,
+      data: JSON.stringify({
+        merchant: s.merchant,
+        date,
+        subtotal: s.subtotal,
+        tax: s.tax,
+        tip: s.tip,
+        total: s.total,
+        items: s.items,
+      }),
+      timestamp,
+    }
+  })
+}
+
 export default function Home() {
   const [processing, setProcessing] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -57,6 +89,10 @@ export default function Home() {
     const saved = localStorage.getItem('receiptiq_receipts')
     if (saved) {
       setSavedReceipts(JSON.parse(saved))
+    } else {
+      const demo = buildDemoReceipts()
+      setSavedReceipts(demo)
+      localStorage.setItem('receiptiq_receipts', JSON.stringify(demo))
     }
   }, [])
 
